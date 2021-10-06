@@ -1,0 +1,3 @@
+[submodule "lib/giatros"]
+	path = lib/giatros
+	url = git@github.com:Erquint/giatros.git
