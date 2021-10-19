@@ -11,6 +11,7 @@ end
 # require '/lib/giatros/ducks.rb'
 # require '/lib/giatros/nil_panic.rb'
 # require '/app/hood.rb'
+require '/lib/xenovmath/vectormath.rb'
 
 # https://www.nagwa.com/en/explainers/175169159270/
 # http://www.sunshine2k.de/coding/java/PointOnLine/PointOnLine.html.
@@ -26,6 +27,7 @@ end
 # end
 # args.inputs.mouse&.button_right
 
+=begin
 class Array
   def v_inv # Inversion. → Vector
     return self.map(&:-@)
@@ -89,6 +91,7 @@ class Array
     # return Math.sqrt(((self.first ** 2) + (self.last ** 2)) * ((other.first ** 2) + (other.last ** 2)) - ((self.v_dprod other) ** 2))
   end
 end
+=end
 
     # raise 'Not vec2!' unless self.size == 2
     # raise 'Malformed vec2!' unless
@@ -117,7 +120,12 @@ end
 
 def tick args
   if args.state.tick_count == 0
-    $points = {lseg: [0.0, 0.0], rseg: [0.0, 0.0], circle: [0.0, 0.0], alt_int: [0.0, 0.0]}
+    $points = {
+      lseg: Vec2.new(0.0, 0.0),
+      rseg: Vec2.new(0.0, 0.0),
+      circle: Vec2.new(0.0, 0.0),
+      alt_int: Vec2.new(0.0, 0.0)
+    }
     $mouse = $gtk.args.inputs.mouse
     $p_size = 5
     $c_radius = 50
@@ -125,11 +133,11 @@ def tick args
     mouse_pos = [$mouse.x, $mouse.y]
     
     if $mouse.button_left
-      $points[:lseg] = mouse_pos
+      $points[:lseg].set!(*mouse_pos)
     elsif $mouse.button_right
-      $points[:rseg] = mouse_pos
+      $points[:rseg].set!(*mouse_pos)
     elsif $mouse.button_middle
-      $points[:circle] = mouse_pos
+      $points[:circle].set!(*mouse_pos)
     end
     
     if args.inputs.mouse.wheel
@@ -139,21 +147,24 @@ def tick args
     
     # Offset vectors.
     v0 = $points[:lseg] # Local origin.
-    v1 = [$points[:rseg].x, $points[:rseg].y].v_sub(v0) # "Red" point.
-    v2 = [$points[:circle].x, $points[:circle].y].v_sub(v0) # "Green" point.
-    v3 = v1.v_setmag(v2.v_mag * v1.v_costheta(v2)) # "Yellow" point.
+    v1 = $points[:rseg] - v0 # "Red" point.
+    v2 = $points[:circle] - v0 # "Green" point.
+    # v3 = v1.v_setmag(v2.magnitude * v1.v_costheta(v2)) # "Yellow" point.
+    costheta = (v1.dot(v2)) / (v1.magnitude * v2.magnitude)
+    magnitude = v2.magnitude * costheta
+    v3 = v1.normalize.scale magnitude # "Yellow" point.
     
-    $points[:alt_int] = v3.v_add v0 # Altitude intersection point.
+    $points[:alt_int] = v3 + v0 # Altitude intersection point.
     
-    # selfdot = v1.v_dprod(v1)
-    alt_int_onseg = (0..(v1.v_mag ** 2)).include?(v1.v_dprod(v3))
-    a_collision = (v3.v_sub(v2).v_mag < $c_radius && alt_int_onseg)
-    l_collision = v2.v_mag < $c_radius
-    r_collision = v1.v_sub(v2).v_mag < $c_radius
+    # selfdot = v1.dot(v1)
+    alt_int_onseg = (0..(v1.magnitude ** 2)).include?(v1.dot(v3))
+    a_collision = ((v3 - v2).magnitude < $c_radius && alt_int_onseg)
+    l_collision = v2.magnitude < $c_radius
+    r_collision = (v1 - v2).magnitude < $c_radius
     line_collision = a_collision || r_collision || l_collision
     
-    rfar = v1.v_smult(1e3).v_add(v0)
-    lfar = v1.v_inv.v_smult(1e3).v_add(v0)
+    rfar = v1.scale(1e3) + v0
+    lfar = v1.invert.scale(1e3) + v0
     
     args.outputs.primitives << [
       {

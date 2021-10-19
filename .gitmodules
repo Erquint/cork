@@ -1,3 +1,6 @@
 [submodule "lib/giatros"]
 	path = lib/giatros
 	url = git@github.com:Erquint/giatros.git
+[submodule "lib/xenovmath"]
+	path = lib/xenovmath
+	url = git@github.com:xenobrain/ruby_vectormath.git
