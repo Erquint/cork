@@ -1,8 +1,9 @@
 # UTF-8
 # DRGTK Pro 3.0 RC
 
-# require '/lib/giatros/frametimer.rb'
+require '/lib/giatros/ducks.rb'
 require '/lib/xenovmath/vectormath.rb'
+require '/lib/giatros/frametimer.rb'
 require '/app/hood.rb'
 
 # https://www.nagwa.com/en/explainers/175169159270/
@@ -98,10 +99,10 @@ end
 
 # To be benchmarked.
 # costheta = Math.cos(Math.acos( v1.dot(v2) / (v1.abs * v2.abs) ))
-# costheta = Math.cos(Math.acos( v1.normalize.dot(v2.normalize) ))
+# costheta = Math.cos(Math.acos( v1.unit.dot(v2.unit) ))
 # costheta = Math.cos( (Math.atan2(v1.x, v1.y) - Math.atan2(v2.x, v2.y)).abs )
 # proj_bound = (0..1).include?(proj_magnitude / v1.abs)
-# v3 = v1.normalize.scale proj_magnitude # "Yellow" point.
+# v3 = v1.unit.scale proj_magnitude # "Yellow" point.
 # v3 = v1.v_setmag(v2.abs * v1.v_costheta(v2)) # "Yellow" point.
 # proj_bound = (0..(v1.abs ** 2)).include?(v1.dot(v3))
 # proj_bound = (0..(v1.dot(v1))).include?(v1.dot(v3))
@@ -133,12 +134,14 @@ def tick args
       $c_radius = 0 if $c_radius.negative?
     end
     
+    # op = nil
+    # 1e4.truncate.times do
     op = ortho_proj $points[:lseg], $points[:rseg], $points[:circle]
+    # end
     
     $points[:proj] = op[:global][:projected]
-    proj_onseg = op[:proj_bound]
     
-    if proj_onseg
+    if op[:proj_bound]
       proj_collision = (op[:local][:projected] - op[:local][:other]).abs < $c_radius
     else
       proj_collision = false
@@ -180,7 +183,7 @@ def tick args
       }, { # Yellow point.
         primitive_marker: :solid,
         x: $points[:proj].x - $p_size / 2, y: $points[:proj].y - $p_size / 2,
-        w: $p_size, h: $p_size, r: 255, g: 255, a: proj_onseg ? 255 : 0
+        w: $p_size, h: $p_size, r: 255, g: 255, a: op[:proj_bound] ? 255 : 0
       }, { # Blue point.
         primitive_marker: :solid,
         x: $points[:lseg].x - $p_size / 2, y: $points[:lseg].y - $p_size / 2,
@@ -222,22 +225,26 @@ def tick args
         r: 255, g: 255, b: 255
       }, { # Angle "arc".
         primitive_marker: :line,
-        x: (op[:local][:base].normalize.scale 15).x + $points[:lseg].x,
-        y: (op[:local][:base].normalize.scale 15).y + $points[:lseg].y,
-        x2: (op[:local][:other].normalize.scale 15).x + $points[:lseg].x,
-        y2: (op[:local][:other].normalize.scale 15).y + $points[:lseg].y,
+        x: (op[:local][:base].unit.scale 15).x + $points[:lseg].x,
+        y: (op[:local][:base].unit.scale 15).y + $points[:lseg].y,
+        x2: (op[:local][:other].unit.scale 15).x + $points[:lseg].x,
+        y2: (op[:local][:other].unit.scale 15).y + $points[:lseg].y,
         r: 213, g: 213
       }, { # Angle degrees readout.
         primitive_marker: :label,
         x: $points[:lseg].x + $p_size / 2, y: $points[:lseg].y + $p_size / 2,
-        text: "#{(op[:theta] / DEG2RAD).round(2)}°",
+        # text: "#{(op[:theta] / DEG2RAD).round(2)}°",
+        text: "%.2f°" % (op[:theta] / DEG2RAD),
         r: 213, g: 213, b: 213
       }, { # Circle sprite.
         primitive_marker: :sprite,
         x: $points[:circle].x - $c_radius, y: $points[:circle].y - $c_radius,
         w: $c_radius * 2, h: $c_radius * 2,
         path: 'assets/circle.png',
-      }.merge!(line_collision ? {r: 255, g: 0, b: 0} : {r: 255, g: 255, b: 255}), 
+      }.merge!(line_collision ? {r: 255, g: 0, b: 0} : {r: 255, g: 255, b: 255}),
+      Giatros::Frametimer.frametime_label,
+      Giatros::Frametimer.fps_label,
+      Giatros::Frametimer.graph
     ]
   end
 end
