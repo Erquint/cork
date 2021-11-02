@@ -15,8 +15,6 @@ def ortho_proj v_offset, v_base, v_other
   other = v_other - v_offset
   theta = (((Math.atan2(other.y, other.x) - Math.atan2(base.y, base.x) + Math::PI) % (2 * Math::PI)) - Math::PI)
   costheta = Math.cos theta
-  # costheta = (base.dot(other) / (base.abs * other.abs)).clamp(-1, 1)
-  # theta = Math.acos(costheta) * (base.cross(other) <=> 0)
   proj_magnitude = other.abs * costheta
   proj_bound = (0..1).include?(proj_magnitude / base.abs)
   projected = base.unit.scale proj_magnitude
