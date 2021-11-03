@@ -24,7 +24,7 @@ def ortho_proj global_offset, global_base, global_other
       vector: projected + global_offset,
       magnitude: proj_magnitude,
       bound: proj_bound
-    }
+    },
     local: {
       base: base,
       other: other,
