@@ -44,7 +44,6 @@ def lineseg_int base0, base1, other0, other1
   
   if (0..1).include?(base_scale) && (0..1).include?(other_scale)
     intersection = base0 + base.scale(base_scale)
-    # intersection = other0 + other.scale(other_scale)
     intersects = true
   else
     intersection = Vec2.new
