@@ -33,7 +33,6 @@ def ortho_proj global_offset, global_base, global_other
   }
 end
 
-# https://stackoverflow.com/a/1968345/2407356
 def lineseg_int base0, base1, other0, other1
   base = base1 - base0
   other = other1 - other0
