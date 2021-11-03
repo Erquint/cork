@@ -55,3 +55,12 @@ def lineseg_int base0, base1, other0, other1
     intersection: intersection
   }
 end
+
+def lineseg_end_distance base0, base1, other0, other1
+  return [
+    (base0 - other0).abs,
+    (base0 - other1).abs,
+    (base1 - other0).abs,
+    (base1 - other1).abs
+  ].min
+end

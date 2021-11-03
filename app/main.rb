@@ -31,7 +31,8 @@ def tick args
       seg_selector[1].set!(*mouse_pos)
     end
     
-    li = lineseg_int $points[:base0], $points[:base1], $points[:other0], $points[:other1]
+    lsi = lineseg_int $points[:base0], $points[:base1], $points[:other0], $points[:other1]
+    lsed = lineseg_end_distance $points[:base0], $points[:base1], $points[:other0], $points[:other1]
     
     args.outputs.primitives << [
       { # Background.
@@ -67,12 +68,12 @@ def tick args
         w: $p_size, h: $p_size, r: 255, g: 255
       }, { # Purple point.
         primitive_marker: :solid,
-        x: li[:intersection].x - $p_size / 2, y: li[:intersection].y - $p_size / 2,
-        w: $p_size, h: $p_size, r: 255, b: 255, a: li[:intersects?] ? 255 : 0
+        x: lsi[:intersection].x - $p_size / 2, y: lsi[:intersection].y - $p_size / 2,
+        w: $p_size, h: $p_size, r: 255, b: 255, a: lsi[:intersects?] ? 255 : 0
       }, { # Debug.
         primitive_marker: :label,
         x: args.grid.x, y: args.grid.h,
-        text: "#{li.inspect}",
+        text: "#{lsed.inspect}",
         r: 213, g: 213, b: 213
       }
     ]
