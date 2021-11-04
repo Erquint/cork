@@ -43,9 +43,9 @@ def tick args
     end
     
     # Rudiments.
-    op = ortho_proj @base0, @base1, @other0
+    # op = ortho_proj @base0, @base1, @other0
     lsi = lineseg_int @base0, @base1, @other0, @other1
-    lsed = lineseg_end_distance @base0, @base1, @other0, @other1
+    # lsed = lineseg_end_distance @base0, @base1, @other0, @other1
     
     # The real deal.
     lsd = lineseg_dist @base0, @base1, @other0, @other1
