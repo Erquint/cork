@@ -15,13 +15,6 @@ class Vec2
     return self
   end
   
-=begin
-  def perp!
-    @x, @y = -@y, @x
-    return self
-  end
-=end
-  
   def perp
     dup.perp!
   end
@@ -31,17 +24,6 @@ class Vec2
   alias unit normalize
   alias perpdot cross
 end
-
-=begin
-def tick args
-  begin
-    super
-  rescue => e
-    puts e
-    $gtk.exit
-  end
-end
-=end
 
 def ortho_proj global_offset, global_base, global_other
   base = global_base - global_offset
@@ -117,6 +99,5 @@ def lineseg_dist base0, base1, other0, other1
     return lsed
   else
     return [lsed, projs.min].min
-    # return projs.min{|prev_proj, next_proj| prev_vec[:proj_magnitude] <=> next_vec[:proj_magnitude]}.[:proj_magnitude]
   end
 end

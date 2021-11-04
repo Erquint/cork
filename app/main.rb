@@ -9,12 +9,6 @@ require '/app/hood.rb'
 def tick args
   if args.state.tick_count == 0
     new_vector = Vec2.new(0.0, 0.0)
-    # $points = {
-      # base0: new_vector.dup,
-      # base1: new_vector.dup,
-      # other0: new_vector.dup,
-      # other1: new_vector.dup
-    # }
     $pills = {
       base: {start: new_vector.dup, end: new_vector.dup, radius: 20},
       other: {start: new_vector.dup, end: new_vector.dup, radius: 20}
@@ -22,13 +16,6 @@ def tick args
     $mouse = $gtk.args.inputs.mouse
     $marker_size = 5
   elsif args.state.tick_count > 0
-    # $points.keys.each do |keysym|
-      # instance_variable_set(keysym.to_s.insert(0, ?@).to_sym, $points[keysym])
-    # end
-    # $points[:base0]  $points[:base1]  $points[:other0]  $points[:other1]
-    # ↓                ↓                ↓                 ↓               
-    # @base0           @base1           @other0           @other1         
-    
     @base0 = $pills[:base][:start]
     @base1 = $pills[:base][:end]
     @base_radius = $pills[:base][:radius]
@@ -78,18 +65,6 @@ def tick args
             x: wall[0].x, y: wall[0].y,
             x2: wall[1].x, y2: wall[1].y,
             r: 255, g: 255, b: 255
-          # }, {
-            # primitive_marker: :solid,
-            # x: wall[0].x - $marker_size / 2,
-            # y: wall[0].y - $marker_size / 2,
-            # w: $marker_size, h: $marker_size,
-            # r: 255, g: 255, b: 255
-          # }, {
-            # primitive_marker: :solid,
-            # x: wall[1].x - $marker_size / 2,
-            # y: wall[1].y - $marker_size / 2,
-            # w: $marker_size, h: $marker_size,
-            # r: 255, g: 255, b: 255
           }
         ]
       end
@@ -153,25 +128,6 @@ def tick args
         x: @other1.x - @other_radius, y: @other1.y - @other_radius,
         w: @other_radius * 2, h: @other_radius * 2,
         path: 'assets/circle.png',
-      # }, { # Debug.
-        # primitive_marker: :label,
-        # x: args.grid.x + 80, y: args.grid.h,
-        # text: "#{lsed.inspect}",
-        # r: 213, g: 213, b: 213
-      # }, { # Debug.
-        # primitive_marker: :label,
-        # x: args.grid.x + 80, y: args.grid.h - 20,
-        # text: "#{lsd.inspect}",
-        # r: 213, g: 213, b: 213
-      # }, { # Debug.
-        # primitive_marker: :label,
-        # x: args.grid.x + 80, y: args.grid.h - 40,
-        # text: "#{pills_intersect.inspect}",
-        # r: 213, g: 213, b: 213
-      # }, { # Debug.
-        # primitive_marker: :solid,
-        # x: op[:projection][:vector].x - $marker_size / 2, y: op[:projection][:vector].y - $marker_size / 2,
-        # w: $marker_size, h: $marker_size, r: 255, g: 255, b: 255
       },
       Giatros::Frametimer.frametime_label,
       Giatros::Frametimer.fps_label,
