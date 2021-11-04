@@ -3,32 +3,69 @@
 
 class Vec2
   include Giatros::Ducks::Serialize
+  
+  def length
+    Math.sqrt(length_sq)
+  end
+  
+  def perp!
+    x = @x
+    @x = -@y
+    @y = x
+    return self
+  end
+  
+=begin
+  def perp!
+    @x, @y = -@y, @x
+    return self
+  end
+=end
+  
+  def perp
+    dup.perp!
+  end
+  
   alias abs length
   alias abs_sq length_sq
   alias unit normalize
   alias perpdot cross
 end
 
+=begin
+def tick args
+  begin
+    super
+  rescue => e
+    puts e
+    $gtk.exit
+  end
+end
+=end
+
 def ortho_proj global_offset, global_base, global_other
   base = global_base - global_offset
   other = global_other - global_offset
+  # Check out Vec2#angle_to ?
   theta = (((Math.atan2(other.y, other.x) - Math.atan2(base.y, base.x) + Math::PI) % (2 * Math::PI)) - Math::PI)
   costheta = Math.cos theta
-  proj_magnitude = other.abs * costheta
-  proj_bound = (0..1).include?(proj_magnitude / base.abs)
-  projected = base.unit.scale proj_magnitude
+  proj_scale = other.abs * costheta
+  proj_bound = (0..1).include?(proj_scale / base.abs)
+  projection = base.unit.scale proj_scale
   return {
     theta: theta,
     costheta: costheta,
-    projected: {
-      vector: projected + global_offset,
-      magnitude: proj_magnitude,
+    projection: {
+      vector: projection + global_offset,
       bound: proj_bound
     },
     local: {
       base: base,
       other: other,
-      projected: projected
+      projection: {
+        vector: projection,
+        magnitude: proj_scale.abs
+      }
     }
   }
 end
@@ -47,6 +84,7 @@ def lineseg_int base0, base1, other0, other1
     intersects = true
   else
     intersection = Vec2.new
+    # Dafuq? Generalize this, you dumbass!
     intersects = false
   end
   
@@ -63,4 +101,22 @@ def lineseg_end_distance base0, base1, other0, other1
     (base1 - other0).abs,
     (base1 - other1).abs
   ].min
+end
+
+def lineseg_dist base0, base1, other0, other1
+  return 0 if lineseg_int(base0, base1, other0, other1)[:intersects?]
+  lsed = lineseg_end_distance base0, base1, other0, other1
+  projs = [
+    ortho_proj(base0, base1, other0),
+    ortho_proj(base0, base1, other1),
+    ortho_proj(other0, other1, base0),
+    ortho_proj(other0, other1, base1)
+  ].filter{|proj| proj[:projection][:bound]}
+    .map{|proj| (proj[:local][:projection][:vector] - proj[:local][:other]).abs}
+  if projs.empty?
+    return lsed
+  else
+    return [lsed, projs.min].min
+    # return projs.min{|prev_proj, next_proj| prev_vec[:proj_magnitude] <=> next_vec[:proj_magnitude]}.[:proj_magnitude]
+  end
 end

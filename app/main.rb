@@ -8,31 +8,92 @@ require '/app/hood.rb'
 
 def tick args
   if args.state.tick_count == 0
-    $points = {
-      base0: Vec2.new(0.0, 0.0),
-      base1: Vec2.new(0.0, 0.0),
-      other0: Vec2.new(0.0, 0.0),
-      other1: Vec2.new(0.0, 0.0)
+    new_vector = Vec2.new(0.0, 0.0)
+    # $points = {
+      # base0: new_vector.dup,
+      # base1: new_vector.dup,
+      # other0: new_vector.dup,
+      # other1: new_vector.dup
+    # }
+    $pills = {
+      base: {start: new_vector.dup, end: new_vector.dup, radius: 20},
+      other: {start: new_vector.dup, end: new_vector.dup, radius: 20}
     }
     $mouse = $gtk.args.inputs.mouse
-    $p_size = 5
+    $marker_size = 5
   elsif args.state.tick_count > 0
-    mouse_pos = [$mouse.x, $mouse.y]
+    # $points.keys.each do |keysym|
+      # instance_variable_set(keysym.to_s.insert(0, ?@).to_sym, $points[keysym])
+    # end
+    # $points[:base0]  $points[:base1]  $points[:other0]  $points[:other1]
+    # ↓                ↓                ↓                 ↓               
+    # @base0           @base1           @other0           @other1         
+    
+    @base0 = $pills[:base][:start]
+    @base1 = $pills[:base][:end]
+    @base_radius = $pills[:base][:radius]
+    @other0 = $pills[:other][:start]
+    @other1 = $pills[:other][:end]
+    @other_radius = $pills[:other][:radius]
     
     if !!args.inputs.keyboard.key_held.shift
-      seg_selector = [$points[:base0], $points[:base1]]
+      pill_selector = $pills[:base]
     else
-      seg_selector = [$points[:other0], $points[:other1]]
+      pill_selector = $pills[:other]
     end
     
+    mouse_pos = [$mouse.x, $mouse.y]
     if $mouse.button_left
-      seg_selector[0].set!(*mouse_pos)
+      pill_selector[:start].set!(*mouse_pos)
     elsif $mouse.button_right
-      seg_selector[1].set!(*mouse_pos)
+      pill_selector[:end].set!(*mouse_pos)
     end
     
-    lsi = lineseg_int $points[:base0], $points[:base1], $points[:other0], $points[:other1]
-    lsed = lineseg_end_distance $points[:base0], $points[:base1], $points[:other0], $points[:other1]
+    if args.inputs.mouse.wheel
+      scroll = -args.inputs.mouse.wheel.y # Temp. DRGTK bug workaround.
+      pill_selector[:radius] += 5 * scroll
+      pill_selector[:radius] = 0 if pill_selector[:radius].negative?
+    end
+    
+    # Rudiments.
+    op = ortho_proj @base0, @base1, @other0
+    lsi = lineseg_int @base0, @base1, @other0, @other1
+    lsed = lineseg_end_distance @base0, @base1, @other0, @other1
+    
+    # The real deal.
+    lsd = lineseg_dist @base0, @base1, @other0, @other1
+    pills_intersect = lsd <= @base_radius + @other_radius
+    
+    pwalls_prims = $pills.values.map do |pill|
+      wall_offset = (pill[:start] - pill[:end]).perp.unit.scale(pill[:radius])
+      next [
+        [pill[:end] + wall_offset,
+          pill[:start] + wall_offset],
+        [pill[:end] - wall_offset,
+          pill[:start] - wall_offset]
+      ].map do |wall|
+        next [
+          {
+            primitive_marker: :line,
+            x: wall[0].x, y: wall[0].y,
+            x2: wall[1].x, y2: wall[1].y,
+            r: 255, g: 255, b: 255
+          # }, {
+            # primitive_marker: :solid,
+            # x: wall[0].x - $marker_size / 2,
+            # y: wall[0].y - $marker_size / 2,
+            # w: $marker_size, h: $marker_size,
+            # r: 255, g: 255, b: 255
+          # }, {
+            # primitive_marker: :solid,
+            # x: wall[1].x - $marker_size / 2,
+            # y: wall[1].y - $marker_size / 2,
+            # w: $marker_size, h: $marker_size,
+            # r: 255, g: 255, b: 255
+          }
+        ]
+      end
+    end
     
     args.outputs.primitives << [
       { # Background.
@@ -40,42 +101,81 @@ def tick args
         x: $args.grid.x, y: $args.grid.y,
         w: $args.grid.w, h: $args.grid.h,
         r: 42, g: 42, b: 42
-      }, { # Base segment.
+      }.tap{|prim| prim.merge!({r: 80, g: 42, b: 42}) if pills_intersect},
+      pwalls_prims,
+      { # Base segment.
         primitive_marker: :line,
-        x: $points[:base0].x, y: $points[:base0].y,
-        x2: $points[:base1].x, y2: $points[:base1].y,
+        x: @base0.x, y: @base0.y,
+        x2: @base1.x, y2: @base1.y,
         r: 255, g: 255, b: 255
       }, { # Other segment.
         primitive_marker: :line,
-        x: $points[:other0].x, y: $points[:other0].y,
-        x2: $points[:other1].x, y2: $points[:other1].y,
+        x: @other0.x, y: @other0.y,
+        x2: @other1.x, y2: @other1.y,
         r: 255, g: 255, b: 255
-      }, { # Blue point.
-        primitive_marker: :solid,
-        x: $points[:base0].x - $p_size / 2, y: $points[:base0].y - $p_size / 2,
-        w: $p_size, h: $p_size, b: 255
-      }, { # Red point.
-        primitive_marker: :solid,
-        x: $points[:base1].x - $p_size / 2, y: $points[:base1].y - $p_size / 2,
-        w: $p_size, h: $p_size, r: 255
-      }, { # Green point.
-        primitive_marker: :solid,
-        x: $points[:other0].x - $p_size / 2, y: $points[:other0].y - $p_size / 2,
-        w: $p_size, h: $p_size, g: 255
-      }, { # Yellow point.
-        primitive_marker: :solid,
-        x: $points[:other1].x - $p_size / 2, y: $points[:other1].y - $p_size / 2,
-        w: $p_size, h: $p_size, r: 255, g: 255
       }, { # Purple point.
         primitive_marker: :solid,
-        x: lsi[:intersection].x - $p_size / 2, y: lsi[:intersection].y - $p_size / 2,
-        w: $p_size, h: $p_size, r: 255, b: 255, a: lsi[:intersects?] ? 255 : 0
-      }, { # Debug.
-        primitive_marker: :label,
-        x: args.grid.x, y: args.grid.h,
-        text: "#{lsed.inspect}",
-        r: 213, g: 213, b: 213
-      }
+        x: lsi[:intersection].x - $marker_size / 2, y: lsi[:intersection].y - $marker_size / 2,
+        w: $marker_size, h: $marker_size, r: 255, b: 255, a: lsi[:intersects?] ? 255 : 0
+      }, { # Blue point.
+        primitive_marker: :solid,
+        x: @base0.x - $marker_size / 2, y: @base0.y - $marker_size / 2,
+        w: $marker_size, h: $marker_size, b: 255
+      }, { # Red point.
+        primitive_marker: :solid,
+        x: @base1.x - $marker_size / 2, y: @base1.y - $marker_size / 2,
+        w: $marker_size, h: $marker_size, r: 255
+      }, { # Green point.
+        primitive_marker: :solid,
+        x: @other0.x - $marker_size / 2, y: @other0.y - $marker_size / 2,
+        w: $marker_size, h: $marker_size, g: 255
+      }, { # Yellow point.
+        primitive_marker: :solid,
+        x: @other1.x - $marker_size / 2, y: @other1.y - $marker_size / 2,
+        w: $marker_size, h: $marker_size, r: 255, g: 255
+      }, { # Circle base0.
+        primitive_marker: :sprite,
+        x: @base0.x - @base_radius, y: @base0.y - @base_radius,
+        w: @base_radius * 2, h: @base_radius * 2,
+        path: 'assets/circle.png',
+      }, { # Circle base1.
+        primitive_marker: :sprite,
+        x: @base1.x - @base_radius, y: @base1.y - @base_radius,
+        w: @base_radius * 2, h: @base_radius * 2,
+        path: 'assets/circle.png',
+      }, { # Circle other0.
+        primitive_marker: :sprite,
+        x: @other0.x - @other_radius, y: @other0.y - @other_radius,
+        w: @other_radius * 2, h: @other_radius * 2,
+        path: 'assets/circle.png',
+      }, { # Circle other1.
+        primitive_marker: :sprite,
+        x: @other1.x - @other_radius, y: @other1.y - @other_radius,
+        w: @other_radius * 2, h: @other_radius * 2,
+        path: 'assets/circle.png',
+      # }, { # Debug.
+        # primitive_marker: :label,
+        # x: args.grid.x + 80, y: args.grid.h,
+        # text: "#{lsed.inspect}",
+        # r: 213, g: 213, b: 213
+      # }, { # Debug.
+        # primitive_marker: :label,
+        # x: args.grid.x + 80, y: args.grid.h - 20,
+        # text: "#{lsd.inspect}",
+        # r: 213, g: 213, b: 213
+      # }, { # Debug.
+        # primitive_marker: :label,
+        # x: args.grid.x + 80, y: args.grid.h - 40,
+        # text: "#{pills_intersect.inspect}",
+        # r: 213, g: 213, b: 213
+      # }, { # Debug.
+        # primitive_marker: :solid,
+        # x: op[:projection][:vector].x - $marker_size / 2, y: op[:projection][:vector].y - $marker_size / 2,
+        # w: $marker_size, h: $marker_size, r: 255, g: 255, b: 255
+      },
+      Giatros::Frametimer.frametime_label,
+      Giatros::Frametimer.fps_label,
+      Giatros::Frametimer.graph
     ]
   end
 end
